@@ -70,7 +70,7 @@ export default function Example() {
         cryptoAmount: cryptoFeatureEnabled ? formData.amount : null
       };
 
-      const response = await fetch('http://localhost:8000/wishes', {
+      const response = await fetch('https://my-last-wish-api-df78085c0eca.herokuapp.com/wishes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

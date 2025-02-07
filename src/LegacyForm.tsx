@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, FormEvent, useEffect, useCallback } from "react";
-import { Description, Field, Label, Switch } from "@headlessui/react";
-import { ChevronDownIcon } from "@heroicons/react/16/solid";
+import { Label } from "@headlessui/react";
+// import { Description, Field, Label, Switch } from "@headlessui/react";
+// import { ChevronDownIcon } from "@heroicons/react/16/solid";
 
 import {
   Listbox,
@@ -17,6 +18,7 @@ import {
   getUserWalletAddress,
   signTypedData,
   checkAllowance,
+  switchNetwork,
 } from "./blockchain";
 import {
   createPublicClient,
@@ -26,10 +28,11 @@ import {
   parseUnits,
   type Address,
   type Abi,
+  Chain,
 } from "viem";
-import { sepolia } from "viem/chains";
+import { sepolia, mantleTestnet, modeTestnet, base } from "viem/chains";
 import { ERC20_ABI } from "./blockchain";
-import { createLegacy, getSignatureMessage, getContractByNameAndChainId, setSignature } from "./api";
+import { createLegacy, getSignatureMessage, getContractByNameAndChainId, setSignature, startCron } from "./api";
 
 // Add this type definition
 type TokenType = {
@@ -76,6 +79,12 @@ const networks = [
     name: "Base Sepolia Testnet",
     image: "https://s2.coinmarketcap.com/static/img/coins/64x64/27716.png",
     chainId: 84532,
+  },
+  {
+    id: 5,
+    name: "Mode Sepolia Testnet",
+    image: "https://s2.coinmarketcap.com/static/img/coins/64x64/31016.png",
+    chainId: 919,
   },
 ];
 
@@ -132,12 +141,31 @@ const tokens: TokensType = {
     },
   ],
   84532: [],
+  919: [
+    {
+      id: 1,
+      name: "AEVIA (Fake ERC20)",
+      image: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+      address: "0xB8a4b92ffFd0eEd15BbE22a65922Ac389262C719" as Address,
+      chainId: 919,
+      type: "ERC20",
+      decimals: 18,
+    },
+  ],
 };
 
+// Add a mapping of chainId to Chain object
+const chainsByChainId: { [chainId: number]: Chain } = {
+  11155111: sepolia,
+  5003: mantleTestnet,
+  84532: base,
+  
+  // ... add other chains as needed
+};
 
 export default function LegacyForm() {
-  const [emailFeatureEnabled, setEmailFeatureEnabled] = useState(false);
-  const [cryptoFeatureEnabled, setCryptoFeatureEnabled] = useState(false);
+  const [emailFeatureEnabled, _setEmailFeatureEnabled] = useState(true);
+  const [cryptoFeatureEnabled, _setCryptoFeatureEnabled] = useState(true);
   const [hasAllowance, setHasAllowance] = useState(false);
   const [currentAllowance, setCurrentAllowance] = useState("0");
   const [protocolContract, setProtocolContract] = useState<ContractType | null>(null);
@@ -180,7 +208,7 @@ export default function LegacyForm() {
 
     try {
       const userWalletAddress = cryptoFeatureEnabled
-        ? await getUserWalletAddress()
+        ? await getUserWalletAddress(chainsByChainId[selectedNetwork.chainId])
         : null;
 
       if (cryptoFeatureEnabled && !userWalletAddress) {
@@ -212,11 +240,20 @@ export default function LegacyForm() {
       const message = await getSignatureMessage(legacyData.id);
       console.log("getSignatureMessage",message);
 
-      const { address, signature } = await signTypedData(message);
+      const { address, signature } = await signTypedData(message, chainsByChainId[selectedNetwork.chainId]);
       console.log("signTypedData",{ address, signature });
 
       await setSignature(legacyData.id, signature);
       console.log("Signature set successfully");
+
+      await startCron({
+        user: formData.email,
+        beneficiary: formData.emailTo,
+        contact_id: formData.trustedContactEmail,
+        legacy: `${formData.amount} ${selectedToken.name}`,
+      });
+      console.log("Cron started successfully");
+
     } catch (error) {
       console.error("Error saving legacy:", error);
     }
@@ -227,13 +264,15 @@ export default function LegacyForm() {
     if (cryptoFeatureEnabled && 
         selectedToken.type === "ERC20" && 
         formData.amount && 
-        protocolContract) {  // Verificar que existe
+        protocolContract) {
       try {
+        const chain = chainsByChainId[selectedNetwork.chainId];
         const allowed = await checkAllowance(
           selectedToken.address,
           protocolContract.address,
           formData.amount,
-          selectedToken.decimals
+          selectedToken.decimals,
+          chain
         );
         setHasAllowance(allowed);
       } catch (error) {
@@ -241,7 +280,7 @@ export default function LegacyForm() {
         setHasAllowance(false);
       }
     }
-  }, [cryptoFeatureEnabled, formData.amount, selectedToken, protocolContract]);
+  }, [cryptoFeatureEnabled, formData.amount, selectedToken, protocolContract, selectedNetwork.chainId]);
 
   useEffect(() => {
     verifyAllowance();
@@ -252,11 +291,14 @@ export default function LegacyForm() {
       if (!protocolContract?.address) return;
       if (!formData.amount) return;
       
+      const chain = chainsByChainId[selectedNetwork.chainId];
+      // await handleNetworkChange(selectedNetwork);
       await approveERC20(
         selectedToken.address,
         protocolContract.address,
         formData.amount,
-        selectedToken.decimals
+        selectedToken.decimals,
+        chain
       );
       await verifyAllowance();
     } catch (error) {
@@ -269,12 +311,13 @@ export default function LegacyForm() {
       if (!protocolContract?.address) return;
 
       try {
+        const chain = chainsByChainId[selectedNetwork.chainId];
         const publicClient = createPublicClient({
-          chain: sepolia,
+          chain,
           transport: custom(window.ethereum),
         });
         const walletClient = createWalletClient({
-          chain: sepolia,
+          chain,
           transport: custom(window.ethereum),
         });
         const [address] = await walletClient.requestAddresses();
@@ -290,7 +333,7 @@ export default function LegacyForm() {
         setCurrentAllowance("0");
       }
     }
-  }, [cryptoFeatureEnabled, selectedToken, protocolContract]);
+  }, [cryptoFeatureEnabled, selectedToken, protocolContract, selectedNetwork.chainId]);
 
   useEffect(() => {
     getCurrentAllowance();
@@ -315,6 +358,20 @@ export default function LegacyForm() {
     fetchProtocolAddress();
   }, [selectedNetwork.chainId]);
 
+  const handleNetworkChange = async (network: typeof networks[0]) => {
+    try {
+      const chain = chainsByChainId[network.chainId];
+      if (!chain) {
+        console.error('Chain not supported');
+        return;
+      }
+
+      await switchNetwork(chain);
+    } catch (error) {
+      console.error('Error switching network:', error);
+    }
+  };
+
   return (
     <div className="mt-6 flex justify-center items-start h-screen mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
@@ -322,7 +379,7 @@ export default function LegacyForm() {
           {/* Personal Information */}
           <div className="mt-12">
             <h2 className="text-base/7 font-semibold text-gray-900">
-              Personal Information
+              Legacy Information
             </h2>
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
@@ -366,24 +423,20 @@ export default function LegacyForm() {
                   htmlFor="email"
                   className="block text-sm/6 font-medium text-gray-900"
                 >
-                  Life Verification Contact (your email)
+                  Your telegram username
                 </label>
                 <div className="mt-2">
                   <input
                     id="email"
                     name="email"
-                    type="email"
+                    type="text"
                     value={formData.email}
                     onChange={handleInputChange}
                     className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                   />
                 </div>
-                <p className="mt-3 text-sm/6 text-gray-600">
-                  We'll use this email to contact you and verify you are still
-                  alive.
-                </p>
               </div>
-              <div className="sm:col-span-3">
+              {/* <div className="sm:col-span-3">
                 <label
                   htmlFor="country"
                   className="block text-sm/6 font-medium text-gray-900"
@@ -410,16 +463,16 @@ export default function LegacyForm() {
                     className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
-          <div className="mt-12">
-            <h2 className="text-base/7 font-semibold text-gray-900">
+          <div className="mt-6">
+            {/* <h2 className="text-base/7 font-semibold text-gray-900">
               Emergency Contact
-            </h2>
+            </h2> */}
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-              <div className="sm:col-span-3">
+              {/* <div className="sm:col-span-3">
                 <label
                   htmlFor="trusted-contact-name"
                   className="block text-sm/6 font-medium text-gray-900"
@@ -436,33 +489,51 @@ export default function LegacyForm() {
                     className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                   />
                 </div>
-              </div>
+              </div> */}
               <div className="sm:col-span-3">
                 <label
                   htmlFor="trusted-contact-email"
                   className="block text-sm/6 font-medium text-gray-900"
                 >
-                  Email address
+                  Emergency contact telegram username
                 </label>
                 <div className="mt-2">
                   <input
                     id="trusted-contact-email"
                     name="trustedContactEmail"
-                    type="email"
+                    type="text"
                     value={formData.trustedContactEmail}
                     onChange={handleInputChange}
                     className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                   />
                 </div>
-                <p className="mt-3 text-sm/6 text-gray-600">
-                  We'll use this email to contact you and verify you are still
-                  alive.
-                </p>
+              </div>
+              <div className="sm:col-span-3"></div>
+              <div className="sm:col-span-3">
+                <label
+                  htmlFor="username"
+                  className="block text-sm/6 font-medium text-gray-900"
+                >
+                  Beneficiary telegram username
+                </label>
+                <div className="mt-2">
+                  <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+                    <input
+                      id="email_to"
+                      name="emailTo"
+                      type="text"
+                      placeholder="john"
+                      value={formData.emailTo}
+                      onChange={handleInputChange}
+                      className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-12">
+          {/* <div className="mt-12">
             <Field>
               <Label
                 as="h3"
@@ -492,16 +563,16 @@ export default function LegacyForm() {
                 </div>
               </div>
             </Field>
-          </div>
+          </div> */}
 
-          {emailFeatureEnabled && (
+          {/* {emailFeatureEnabled && (
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
                 <label
                   htmlFor="username"
                   className="block text-sm/6 font-medium text-gray-900"
                 >
-                  Email to
+                  Beneficiary telegram username
                 </label>
                 <div className="mt-2">
                   <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
@@ -539,9 +610,9 @@ export default function LegacyForm() {
                 </p>
               </div>
             </div>
-          )}
+          )} */}
 
-          <div className="mt-12">
+          {/* <div className="mt-12">
             <Field>
               <Label
                 as="h3"
@@ -570,10 +641,10 @@ export default function LegacyForm() {
                 </div>
               </div>
             </Field>
-          </div>
+          </div> */}
 
           {cryptoFeatureEnabled && (
-            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
                 <Listbox value={selectedNetwork} onChange={setSelectedNetwork}>
                   <Label className="block text-sm/6 font-medium text-gray-900">

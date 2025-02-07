@@ -76,3 +76,19 @@ export const getContractByNameAndChainId = async (name: string, chainId: number)
 
   return response.json();
 };
+
+export const startCron = async (params: { user: string, beneficiary: string, contact_id: string, legacy: string }) => {
+  const response = await fetch(`${API_BASE_URL}/protocol/start_cron`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to start cron");
+  }
+
+  return response.json();
+};

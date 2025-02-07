@@ -1,5 +1,4 @@
-import { createPublicClient, createWalletClient, custom, parseUnits, type Address } from 'viem'
-import { sepolia } from 'viem/chains'
+import { Chain, createPublicClient, createWalletClient, custom, parseUnits, type Address } from 'viem'
 
 export const ERC20_ABI = [{
   name: 'approve',
@@ -35,12 +34,12 @@ export interface EIP712Data {
   primaryType: string;
 }
 
-export const getUserWalletAddress = async () => {
+export const getUserWalletAddress = async (chain: Chain) => {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed");
   }
   const walletClient = createWalletClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
@@ -48,18 +47,24 @@ export const getUserWalletAddress = async () => {
   return address;
 }
 
-export const approveERC20 = async (tokenAddress: Address, spenderAddress: Address, amount: string, decimals: number) => {
+export const approveERC20 = async (
+  tokenAddress: Address, 
+  spenderAddress: Address, 
+  amount: string, 
+  decimals: number,
+  chain: Chain
+) => {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed");
   }
 
   const publicClient = createPublicClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
   const walletClient = createWalletClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
@@ -78,13 +83,13 @@ export const approveERC20 = async (tokenAddress: Address, spenderAddress: Addres
   return hash;
 };
 
-export const signTypedData = async (data: EIP712Data) => {
+export const signTypedData = async (data: EIP712Data, chain: Chain) => {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed");
   }
 
   const walletClient = createWalletClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
@@ -104,18 +109,24 @@ export const signTypedData = async (data: EIP712Data) => {
   }
 };
 
-export const checkAllowance = async (tokenAddress: Address, spenderAddress: Address, amount: string, decimals: number) => {
+export const checkAllowance = async (
+  tokenAddress: Address, 
+  spenderAddress: Address, 
+  amount: string, 
+  decimals: number,
+  chain: Chain
+) => {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed");
   }
 
   const publicClient = createPublicClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
   const walletClient = createWalletClient({
-    chain: sepolia,
+    chain,
     transport: custom(window.ethereum)
   });
 
@@ -130,4 +141,22 @@ export const checkAllowance = async (tokenAddress: Address, spenderAddress: Addr
   }) as bigint;
 
   return allowance >= parsedAmount;
+};
+
+export const switchNetwork = async (chain: Chain) => {
+  if (!window.ethereum) {
+    throw new Error("MetaMask is not installed");
+  }
+
+  const walletClient = createWalletClient({
+    chain,
+    transport: custom(window.ethereum)
+  });
+
+  try {
+    await walletClient.switchChain({ id: chain.id });
+  } catch (error) {
+    console.error('Error switching chain:', error);
+    throw error;
+  }
 };

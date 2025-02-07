@@ -1,50 +1,80 @@
-# React + TypeScript + Vite
+<p align="center">
+  <img src="aevia.png" alt="Aevia Image"/>
+</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Aevia Frontend
 
-Currently, two official plugins are available:
+Frontend application for Aevia Protocol.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js (v18 or higher)
+- npm or yarn
+- MetaMask browser extension
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Installation
 
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. Clone the repository:
+```bash
+git clone git@github.com:BeingFounders/aevia-frontend.git
+cd aevia-frontend
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
 ```
+
+3. Create a `.env` file in the root directory:
+```bash
+cp .env.example .env
+```
+
+4. Configure your environment variables in `.env`:
+```bash
+# API URL
+VITE_API_URL=http://localhost:8000
+```
+
+## Development
+
+Run the development server:
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+The application will be available at `http://localhost:5173`
+
+## Build
+
+Create a production build:
+```bash
+npm run build
+# or
+yarn build
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API URL | `http://localhost:8000` |
+
+## Supported Networks
+
+- Sepolia (Chain ID: 11155111)
+- Mantle Testnet (Chain ID: 5003)
+- Mantle Mainnet (Chain ID: 5000)
+- Base Testnet (Chain ID: 84532)
+
+## Features
+
+- Create and manage digital legacies
+- Support for ERC20 and ERC721 tokens
+- Email notifications
+- Multi-network support
+- MetaMask integration

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './WishForm.tsx'
+import App from './LegacyForm.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -58,6 +58,8 @@ export const approveERC20 = async (
     throw new Error("MetaMask is not installed");
   }
 
+  await switchNetworkIfNeeded(chain);
+
   const publicClient = createPublicClient({
     chain,
     transport: custom(window.ethereum)
@@ -120,6 +122,8 @@ export const checkAllowance = async (
     throw new Error("MetaMask is not installed");
   }
 
+  await switchNetworkIfNeeded(chain);
+
   const publicClient = createPublicClient({
     chain,
     transport: custom(window.ethereum)
@@ -143,20 +147,19 @@ export const checkAllowance = async (
   return allowance >= parsedAmount;
 };
 
-export const switchNetwork = async (chain: Chain) => {
-  if (!window.ethereum) {
-    throw new Error("MetaMask is not installed");
-  }
-
+export const switchNetworkIfNeeded = async (chain: Chain) => {
   const walletClient = createWalletClient({
     chain,
     transport: custom(window.ethereum)
   });
 
-  try {
-    await walletClient.switchChain({ id: chain.id });
-  } catch (error) {
-    console.error('Error switching chain:', error);
-    throw error;
+  const currentChainId = await walletClient.getChainId();
+  if (currentChainId !== chain.id) {
+    try {
+      await walletClient.switchChain({ id: chain.id });
+    } catch (error) {
+      console.error('Error switching chain:', error);
+      throw error;
+    }
   }
 };

@@ -159,7 +159,7 @@ const chainsByChainId: { [chainId: number]: Chain } = {
   11155111: sepolia,
   5003: mantleTestnet,
   84532: base,
-  
+  919: modeTestnet,
   // ... add other chains as needed
 };
 
@@ -288,11 +288,15 @@ export default function LegacyForm() {
 
   const handleApprove = async () => {
     try {
+      debugger;
       if (!protocolContract?.address) return;
       if (!formData.amount) return;
       
       const chain = chainsByChainId[selectedNetwork.chainId];
-      // await handleNetworkChange(selectedNetwork);
+      if (chain.id !== selectedNetwork.chainId) {
+        await handleNetworkChange(selectedNetwork);
+      }
+
       await approveERC20(
         selectedToken.address,
         protocolContract.address,
@@ -357,20 +361,6 @@ export default function LegacyForm() {
 
     fetchProtocolAddress();
   }, [selectedNetwork.chainId]);
-
-  const handleNetworkChange = async (network: typeof networks[0]) => {
-    try {
-      const chain = chainsByChainId[network.chainId];
-      if (!chain) {
-        console.error('Chain not supported');
-        return;
-      }
-
-      await switchNetwork(chain);
-    } catch (error) {
-      console.error('Error switching network:', error);
-    }
-  };
 
   return (
     <div className="mt-6 flex justify-center items-start h-screen mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

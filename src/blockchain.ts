@@ -154,6 +154,8 @@ export const switchNetworkIfNeeded = async (chain: Chain) => {
   });
 
   const currentChainId = await walletClient.getChainId();
+  console.log('user chain', currentChainId);
+  console.log('required chain', chain.id);
   if (currentChainId !== chain.id) {
     try {
       await walletClient.switchChain({ id: chain.id });

@@ -265,6 +265,8 @@ export default function LegacyForm() {
       });
       console.log("Cron started successfully");
 
+      alert("Legacy created successfully");
+
     } catch (error) {
       console.error("Error saving legacy:", error);
     }

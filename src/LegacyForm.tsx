@@ -139,7 +139,17 @@ const tokens: TokensType = {
       decimals: 0,
     },
   ],
-  84532: [],
+  84532: [
+    {
+      id: 1,
+      name: "USDC",
+      image: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+      address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as Address,
+      chainId: 84532,
+      type: "ERC20",
+      decimals: 6,
+    },
+  ],
   919: [
     {
       id: 1,

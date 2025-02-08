@@ -29,7 +29,7 @@ import {
   type Abi,
   Chain,
 } from "viem";
-import { sepolia, mantleTestnet, modeTestnet, base } from "viem/chains";
+import { sepolia, mantleTestnet, modeTestnet, baseSepolia } from "viem/chains";
 import { ERC20_ABI } from "./blockchain";
 import { createLegacy, getSignatureMessage, getContractByNameAndChainId, setSignature, startCron } from "./api";
 
@@ -167,7 +167,7 @@ const tokens: TokensType = {
 const chainsByChainId: { [chainId: number]: Chain } = {
   11155111: sepolia,
   5003: mantleTestnet,
-  84532: base,
+  84532: baseSepolia,
   919: modeTestnet,
   // ... add other chains as needed
 };

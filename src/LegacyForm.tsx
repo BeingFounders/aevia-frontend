@@ -18,7 +18,6 @@ import {
   getUserWalletAddress,
   signTypedData,
   checkAllowance,
-  switchNetwork,
 } from "./blockchain";
 import {
   createPublicClient,
@@ -164,8 +163,10 @@ const chainsByChainId: { [chainId: number]: Chain } = {
 };
 
 export default function LegacyForm() {
-  const [emailFeatureEnabled, _setEmailFeatureEnabled] = useState(true);
-  const [cryptoFeatureEnabled, _setCryptoFeatureEnabled] = useState(true);
+  // const [emailFeatureEnabled, setEmailFeatureEnabled] = useState(true);
+  // const [cryptoFeatureEnabled, setCryptoFeatureEnabled] = useState(true);
+  const [emailFeatureEnabled] = useState(true);
+  const [cryptoFeatureEnabled] = useState(true);
   const [hasAllowance, setHasAllowance] = useState(false);
   const [currentAllowance, setCurrentAllowance] = useState("0");
   const [protocolContract, setProtocolContract] = useState<ContractType | null>(null);
@@ -288,15 +289,10 @@ export default function LegacyForm() {
 
   const handleApprove = async () => {
     try {
-      debugger;
       if (!protocolContract?.address) return;
       if (!formData.amount) return;
       
       const chain = chainsByChainId[selectedNetwork.chainId];
-      if (chain.id !== selectedNetwork.chainId) {
-        await handleNetworkChange(selectedNetwork);
-      }
-
       await approveERC20(
         selectedToken.address,
         protocolContract.address,
